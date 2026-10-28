@@ -7,7 +7,10 @@ create table apps (
   id uuid primary key default gen_random_uuid(),
   slug text unique not null, name text not null, short_desc text not null,
   description text not null default '', features text[] not null default '{}',
-  category text not null, icon_url text, screenshots text[] not null default '{}',
+  category text not null, content_type text not null default 'app'
+    check (content_type in ('app','music','ebook','document','video','other')),
+  file_path text, file_name text, file_size_bytes bigint check (file_size_bytes > 0),
+  file_content_type text, icon_url text, screenshots text[] not null default '{}',
   min_android text not null default '5.0', featured boolean not null default false,
   published boolean not null default false, downloads integer not null default 0,
   created_at timestamptz not null default now());
@@ -35,7 +38,16 @@ grant execute on function record_download(uuid) to anon, authenticated;
 -- Storage: server-side size/type limits (free plan max is 50 MB per file).
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types) values
  ('apks','apks',true,52428800,array['application/vnd.android.package-archive','application/octet-stream']),
- ('images','images',true,5242880,array['image/png','image/jpeg','image/webp']);
+ ('images','images',true,5242880,array['image/png','image/jpeg','image/webp']),
+ ('downloads','downloads',true,52428800,array[
+   'application/vnd.android.package-archive','application/octet-stream',
+   'audio/mpeg','audio/mp4','audio/wav','audio/x-wav','audio/ogg','audio/aac','audio/flac','audio/webm',
+   'application/pdf','application/epub+zip','text/plain','text/csv',
+   'application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+   'application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+   'application/vnd.ms-powerpoint','application/vnd.openxmlformats-officedocument.presentationml.presentation',
+   'video/mp4','video/webm','video/quicktime','application/zip'
+ ]);
 create policy "admin uploads" on storage.objects for insert to authenticated with check (is_admin());
 create policy "admin updates" on storage.objects for update to authenticated using (is_admin());
 create policy "admin deletes" on storage.objects for delete to authenticated using (is_admin());

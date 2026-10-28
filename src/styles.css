@@ -1,15 +1,33 @@
 :root {
-  --bg: #f8faf8;
+  --bg: #f5f7f5;
   --card: #ffffff;
-  --line: #e3e8e3;
-  --g: #16833b;
-  --m: #647067;
-  --text: #202720;
-  --soft-green: #e8f5e9;
+  --line: #e1e8e2;
+  --g: #137a3a;
+  --m: #66736b;
+  --text: #18251d;
+  --soft-green: #e7f3e9;
+}
+
+.brand span {
+  color: var(--g);
 }
 
 * {
   box-sizing: border-box;
+}
+
+.audio-player {
+  display: block;
+  width: min(100%, 620px);
+  margin: 22px 0;
+}
+
+.field-help {
+  display: block;
+  margin-top: 6px;
+  color: var(--m);
+  font-size: 0.84rem;
+  font-weight: 400;
 }
 
 html {
@@ -36,7 +54,7 @@ a {
 
 /* Header and navigation */
 header {
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid rgba(225, 232, 226, 0.8);
   position: sticky;
   top: 0;
   background: rgba(255, 255, 255, 0.97);
@@ -58,7 +76,7 @@ header .wrap {
   align-items: center;
   color: var(--text);
   text-decoration: none;
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: -0.4px;
 }
@@ -92,18 +110,45 @@ nav a:hover {
 
 /* Headings and homepage introduction */
 .hero {
-  padding: 46px 0 24px;
+  position: relative;
+  overflow: hidden;
+  margin: 34px 0 24px;
+  padding: clamp(32px, 6vw, 68px);
+  border-radius: 30px;
+  color: #ffffff;
+  background:
+    radial-gradient(ellipse at 87% 14%, rgba(79, 181, 111, 0.38), transparent 34%),
+    linear-gradient(125deg, #10271b 0%, #174e2d 56%, #126c37 100%);
+  box-shadow: 0 22px 55px rgba(17, 58, 32, 0.15);
   animation: up 0.5s ease both;
 }
 
 .hero h1 {
-  letter-spacing: -1.2px;
+  max-width: 720px;
+  margin: 10px 0;
+  font-size: clamp(2.4rem, 6vw, 4.5rem);
+  letter-spacing: -2.2px;
+  line-height: 1.04;
+}
+
+.hero h1 span {
+  color: #a7e5b7;
+}
+
+.eyebrow {
+  display: inline-block;
+  color: #83c896;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
 }
 
 .hero > p {
-  margin-top: 8px;
-  margin-bottom: 22px;
-  font-size: 1.05rem;
+  max-width: 620px;
+  margin: 14px 0 26px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 1.1rem;
 }
 
 @keyframes up {
@@ -153,12 +198,13 @@ textarea {
 }
 
 .hero input[type="search"] {
-  max-width: 680px;
-  min-height: 52px;
-  padding: 14px 18px;
-  border-radius: 28px;
-  background: #edf2ed;
-  border-color: transparent;
+  max-width: 700px;
+  min-height: 58px;
+  padding: 15px 20px;
+  border-radius: 18px;
+  background: #ffffff;
+  border-color: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 8px 22px rgba(4, 25, 12, 0.13);
 }
 
 input:focus,
@@ -185,13 +231,13 @@ label {
   display: flex;
   gap: 9px;
   flex-wrap: wrap;
-  margin: 18px 0 8px;
+  margin: 22px 0 8px;
 }
 
 .chip {
   padding: 8px 17px;
   border-radius: 24px;
-  border: 1px solid #dce4dc;
+  border: 1px solid #e0e7e1;
   background: #ffffff;
   color: #354238;
   font: inherit;
@@ -211,6 +257,22 @@ label {
   font-weight: 700;
 }
 
+.hero .chip {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.hero .chip.on {
+  border-color: #dff3e3;
+  background: #dff3e3;
+  color: #12652d;
+}
+
+.hero .categories {
+  margin-top: 12px;
+}
+
 /* App cards */
 .grid {
   display: grid;
@@ -222,16 +284,16 @@ label {
   min-width: 0;
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 20px;
-  padding: 18px;
-  box-shadow: 0 2px 7px rgba(25, 50, 25, 0.035);
+  border-radius: 22px;
+  padding: 20px;
+  box-shadow: 0 5px 16px rgba(25, 50, 25, 0.04);
   transition: transform 0.2s, box-shadow 0.2s;
   animation: up 0.4s ease both;
 }
 
 .card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(25, 50, 25, 0.08);
+  box-shadow: 0 14px 30px rgba(25, 50, 25, 0.11);
 }
 
 .top {
@@ -275,7 +337,7 @@ label {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 42px;
+  min-height: 46px;
   background: var(--g);
   color: #ffffff;
   font-weight: 700;
@@ -331,6 +393,25 @@ label {
   border-radius: 14px;
   margin: 18px 0;
   font-size: 0.9rem;
+}
+
+.ad-unit {
+  display: block;
+  width: 100%;
+  min-height: 100px;
+  margin: 24px auto;
+  text-align: center;
+}
+
+.ad-label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--m);
+  font-size: 0.75rem;
+}
+
+.ad-unit ins {
+  max-width: 100%;
 }
 
 .msg {
@@ -448,16 +529,18 @@ footer {
   }
 
   nav a {
-    padding: 8px 10px;
-    font-size: 0.9rem;
+    padding: 8px;
+    font-size: 0.8rem;
   }
 
   .hero {
-    padding-top: 30px;
+    margin-top: 20px;
+    padding: 28px 20px;
+    border-radius: 22px;
   }
 
   .hero h1 {
-    letter-spacing: -0.7px;
+    letter-spacing: -1.2px;
   }
 
   h2 {
