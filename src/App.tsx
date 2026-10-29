@@ -16,6 +16,7 @@ const MIME_BY_EXTENSION: Record<string, string> = {
   pdf: 'application/pdf', epub: 'application/epub+zip', txt: 'text/plain', csv: 'text/csv', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', ppt: 'application/vnd.ms-powerpoint',
   pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', mp4: 'video/mp4', mov: 'video/quicktime', zip: 'application/zip',
+  png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp',
 }
 const fileExtension = (file: File) => file.name.split('.').pop()?.toLowerCase() ?? ''
 const fileMime = (file: File) => MIME_BY_EXTENSION[fileExtension(file)] || file.type || ''
@@ -225,7 +226,11 @@ function Admin() {
       if (asset?.size && !supportedFiles) throw new Error('Choose an APK file for Android apps.')
       if (asset?.size && supportedFiles && !isSupportedFile(supportedFiles, asset, assetMime)) throw new Error(`That file format is not supported for ${CONTENT_TYPE_LABELS[selectedType].toLowerCase()}. Supported formats: ${supportedFiles.accept.replace(/,/g, ', ')}.`)
       if (asset?.size && asset.size > MAX_FILE_BYTES) throw new Error('Files must be 50 MB or smaller. This is the maximum size allowed by your storage plan.')
-      for (const im of [icon, ...shots]) if (im.size && (!/^image\/(png|jpeg|webp)$/.test(im.type) || im.size > 5 * 1048576)) throw new Error('Images must be PNG/JPG/WebP up to 5 MB.')
+      for (const im of [icon, ...shots]) {
+        if (!im.size) continue
+        if (!['image/png', 'image/jpeg', 'image/webp'].includes(fileMime(im))) throw new Error(`Unsupported image format: ${im.name}. Choose a PNG, JPG, or WebP image.`)
+        if (im.size > 5 * 1048576) throw new Error(`Image is too large: ${im.name}. Images must be 5 MB or smaller.`)
+      }
       const t = Date.now(); const slug = edit?.slug ?? (slugify(g('name')) || `item-${t}`)
       const row: Record<string, unknown> = { name: g('name'), slug, category: g('category'), short_desc: g('short_desc'), description: g('description'),
         content_type: selectedType, features: g('features').split('\n').map(s => s.trim()).filter(Boolean), min_android: g('min_android') || '5.0' }

@@ -12,6 +12,7 @@ Install Node.js 20+ from nodejs.org, then in this folder:
    - If you already set up the project using the old schema, run `supabase/migrations/20261028000000_add_digital_downloads.sql` in SQL Editor instead. Existing apps and APK versions are preserved.
    - If M4A uploads fail with `audio/x-m4a is not supported`, run `supabase/migrations/20261029000000_allow_m4a_audio_mime.sql` in SQL Editor. This adds that MIME type to the existing `downloads` bucket without removing its current allowed formats.
    - If uploads or saving a new listing fail with a row-level security error, run `supabase/migrations/20261029001000_fix_admin_upload_rls.sql` in SQL Editor while signed into the Supabase project owner account. It restores admin-only insert access for the downloads bucket and admin-only writes to catalog items.
+   - To ensure the existing `downloads` bucket allows every MIME type used by the current upload form, run `supabase/migrations/20261029002000_complete_supported_upload_mimes.sql` in SQL Editor. It adds the supported types without removing any bucket MIME types already configured.
 3. Project Settings > API: copy the Project URL and the `anon` public key into `.env`. Never use or share the `service_role` key.
 
 ## 3. Create the admin account securely
