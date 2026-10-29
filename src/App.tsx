@@ -122,14 +122,23 @@ function Download({ a }: { a: Item }) {
 
 function Card({ a }: { a: Item }) {
   const v = latest(a)
+  const fileDetails = a.content_type === 'app'
+    ? (v ? `v${v.version} · ${fmt(v.size_bytes)}` : 'No file yet')
+    : (a.file_size_bytes ? fmt(a.file_size_bytes) : 'No file yet')
   return (
     <article className="card">
       <Link className="top" to={`/app/${a.slug}`}>
         {a.icon_url ? <img className="icon" src={a.icon_url} alt="" loading="lazy" /> : <div className="icon" />}
-        <div><strong>{a.name}</strong><div className="muted" style={{ fontSize: '.85rem' }}>{CONTENT_TYPE_LABELS[a.content_type]} · {a.category}</div></div>
+        <div className="card-heading">
+          <strong>{a.name}</strong>
+          <span className="card-category">{CONTENT_TYPE_LABELS[a.content_type]} <span aria-hidden="true">·</span> {a.category}</span>
+        </div>
       </Link>
-      <p className="muted">{a.short_desc}</p>
-      <p style={{ fontSize: '.85rem' }}>{a.content_type === 'app' ? (v ? `v${v.version} · ${fmt(v.size_bytes)}` : 'No file yet') : (a.file_size_bytes ? fmt(a.file_size_bytes) : 'No file yet')} · {a.downloads} downloads</p>
+      <p className="card-description">{a.short_desc}</p>
+      <div className="card-details">
+        <span>{fileDetails}</span>
+        <span>{a.downloads.toLocaleString()} downloads</span>
+      </div>
       <Download a={a} />
     </article>
   )
@@ -162,24 +171,113 @@ function Home() {
   if (!apps) return <div className="wrap msg">Loading apps…</div>
   const filtered = apps.filter(a => (cat === 'All' || a.category === cat) && (type === 'all' || a.content_type === type) && (a.name + a.short_desc + a.description + a.category).toLowerCase().includes(q.toLowerCase()))
   const filtering = q || cat !== 'All' || type !== 'all'
+  const featured = apps.filter(a => a.featured)
+  const popular = [...apps].sort((a, b) => b.downloads - a.downloads).slice(0, 4)
+  const totalDownloads = apps.reduce((sum, item) => sum + item.downloads, 0)
+  const curated = (featured.length ? featured : apps).slice(0, 3)
   return (
-    <div className="wrap">
-      <section className="hero">
-        <span className="eyebrow">THE DIGITAL COLLECTION</span>
-        <h1>Good things to <span>discover.</span></h1>
-        <p className="muted">Explore apps, music, ebooks, and more—created and shared by Abel.</p>
-        <input type="search" aria-label="Search the catalog" placeholder="Search apps, music, ebooks…" value={q} onChange={e => setQ(e.target.value)} />
+    <div className="wrap home-shell">
+      <section className="hero premium-hero">
+        <div className="hero-copy">
+          <span className="eyebrow">ABEL DIGITAL STORE</span>
+          <h1>Discover apps, music, and digital favorites.</h1>
+          <p>Explore apps, music, ebooks, and useful downloads, all brought together in one easy-to-browse collection.</p>
+          <div className="hero-actions">
+            <a className="btn" href="#catalog">Explore catalog</a>
+            <button className="btn alt" type="button" onClick={() => { setQ(''); setCat('All'); setType('all') }}>Browse all</button>
+          </div>
+          <div className="hero-metrics">
+            <div>
+              <strong>{apps.length}</strong>
+              <span>items live</span>
+            </div>
+            <div>
+              <strong>{totalDownloads.toLocaleString()}</strong>
+              <span>downloads</span>
+            </div>
+            <div>
+              <strong>{CATEGORIES.length}</strong>
+              <span>categories</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="hero-showcase" aria-label="Featured catalog summary">
+          <div className="mini-panel">
+            <span className="mini-label">A look inside</span>
+            <div className="mini-list">
+              {curated.map(item => (
+                <div key={item.id} className="mini-item">
+                  <div className="mini-thumb">
+                    {item.icon_url ? <img src={item.icon_url} alt={item.name} loading="lazy" /> : <span>{CONTENT_TYPE_LABELS[item.content_type].slice(0, 1)}</span>}
+                  </div>
+                  <div>
+                    <strong>{item.name}</strong>
+                    <span>{CONTENT_TYPE_LABELS[item.content_type]}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="mini-card">
+            <span className="mini-label">Why people browse here</span>
+            <ul>
+              <li>Easy content discovery</li>
+              <li>Apps, music, and more</li>
+              <li>Organized categories</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section className="search-panel" aria-label="Search and browse catalog">
+        <div className="section-intro">
+          <div>
+            <span className="eyebrow subtle">Find what you need</span>
+            <h2>Browse the catalog</h2>
+          </div>
+          <p>Search by title, category, or file type to quickly find the content you want.</p>
+        </div>
+
+        <div className="search-row">
+          <input type="search" aria-label="Search the catalog" placeholder="Search apps, music, ebooks, documents…" value={q} onChange={e => setQ(e.target.value)} />
+        </div>
+
         <div className="chips" role="group" aria-label="Content types">
           {[['all', 'Everything'], ...CONTENT_TYPES.map(t => [t, CONTENT_TYPE_LABELS[t]] as [string, string])].map(([value, label]) => <button key={value} className={'chip' + (type === value ? ' on' : '')} onClick={() => setType(value as ContentType | 'all')}>{label}</button>)}
         </div>
         <div className="chips categories" role="group" aria-label="Categories">
           {['All', ...CATEGORIES].map(c => <button key={c} className={'chip' + (cat === c ? ' on' : '')} onClick={() => setCat(c)}>{c}</button>)}
-        </div></section>
+        </div>
+      </section>
+
       <AdSlot />
-      {filtering ? <Row title="Results" list={filtered} /> : <>
-        <Row title="Featured" list={apps.filter(a => a.featured)} />
-        <Row title="Popular downloads" list={[...apps].sort((a, b) => b.downloads - a.downloads).slice(0, 4)} />
-        <Row title="Recently added" list={apps.slice(0, 8)} /></>}
+
+      <section className="feature-grid" aria-label="Store benefits">
+        <article className="feature-card">
+          <span className="feature-icon">✓</span>
+          <h3>Clean browsing</h3>
+          <p>Organized categories and a faster product discovery flow for every download.</p>
+        </article>
+        <article className="feature-card">
+          <span className="feature-icon">⚡</span>
+          <h3>Fast downloads</h3>
+          <p>Quick access to music, apps, docs, and other content in a single storefront.</p>
+        </article>
+        <article className="feature-card">
+          <span className="feature-icon">★</span>
+          <h3>Curated quality</h3>
+          <p>Regularly updated collection with featured content and popular downloads highlighted.</p>
+        </article>
+      </section>
+
+      <section id="catalog" className="catalog-spotlight">
+        {filtering ? <Row title="Results" list={filtered} /> : <>
+          <Row title="Featured" list={featured} />
+          <Row title="Popular downloads" list={popular} />
+          <Row title="Recently added" list={apps.slice(0, 8)} /></>}
+      </section>
+
       {!apps.length && <p className="msg">Nothing is published yet. Check back soon.</p>}
       {apps.length > 0 && filtering && !filtered.length && <p className="msg">No items match your search.</p>}
     </div>
