@@ -175,7 +175,6 @@ function Home() {
         <div className="chips categories" role="group" aria-label="Categories">
           {['All', ...CATEGORIES].map(c => <button key={c} className={'chip' + (cat === c ? ' on' : '')} onClick={() => setCat(c)}>{c}</button>)}
         </div></section>
-      {apps.some(a => a.content_type === 'app') && <div className="warn" role="note">{RISK}</div>}
       <AdSlot />
       {filtering ? <Row title="Results" list={filtered} /> : <>
         <Row title="Featured" list={apps.filter(a => a.featured)} />
