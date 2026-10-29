@@ -21,7 +21,7 @@ Only users in the `admins` table can write anything, even if someone else obtain
 ## 4. Publish apps and downloads
 Go to `/admin` and sign in. The dashboard lets you create items as Android apps, music, ebooks, documents, videos, or other supported files. Add a title, description, category, optional artwork, and a file, then Save and click Publish. Music items include an in-page audio player.
 
-Uploads are limited to 50 MB per file and checked against the selected content type. Supported formats include APK, MP3/M4A/WAV/OGG/AAC/FLAC, PDF/EPUB, common Office documents, MP4/WebM/MOV, and ZIP. Supabase Free has a 50 MB per-file cap; larger media requires a storage plan or hosting provider that supports larger uploads.
+Uploads are limited to 50 MB per file and checked against the selected content type. Supported formats include APK, MP3/M4A/WAV/OGG/AAC/FLAC, PDF/EPUB, common Office documents, MP4/WebM/MOV, and ZIP. Media formats are recognized by their supported filename extension as well as browser MIME type, so inconsistent browser labels do not reject a valid track. Supabase Free has a 50 MB per-file cap; larger media requires a storage plan or hosting provider that supports larger uploads.
 
 For Android apps, provide a version (e.g. `1.0.0`) with each APK. Previous versions remain in the changelog.
 

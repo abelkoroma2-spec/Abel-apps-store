@@ -17,7 +17,12 @@ const MIME_BY_EXTENSION: Record<string, string> = {
   xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', ppt: 'application/vnd.ms-powerpoint',
   pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', mp4: 'video/mp4', mov: 'video/quicktime', zip: 'application/zip',
 }
-const fileMime = (file: File) => file.type || MIME_BY_EXTENSION[file.name.split('.').pop()?.toLowerCase() ?? ''] || ''
+const fileExtension = (file: File) => file.name.split('.').pop()?.toLowerCase() ?? ''
+const fileMime = (file: File) => MIME_BY_EXTENSION[fileExtension(file)] || file.type || ''
+const isSupportedFile = (supported: { accept: string; mimeTypes: string[] }, file: File, mime: string) => {
+  const extension = `.${fileExtension(file)}`
+  return supported.mimeTypes.includes(mime) || supported.mimeTypes.includes(file.type) || supported.accept.split(',').includes(extension)
+}
 const ADSENSE_CLIENT = String(import.meta.env.VITE_ADSENSE_CLIENT ?? '').trim()
 const ADSENSE_SLOT = String(import.meta.env.VITE_ADSENSE_SLOT ?? '').trim()
 
@@ -213,10 +218,13 @@ function Admin() {
       const apk = f.get('apk') as File | null; const asset = f.get('asset') as File | null; const icon = f.get('icon') as File; const shots = (f.getAll('shots') as File[]).filter(s => s.size)
       const selectedType = g('content_type') as ContentType
       if (!CONTENT_TYPES.includes(selectedType)) throw new Error('Choose a supported content type.')
+      const supportedFiles = selectedType === 'app' ? null : FILE_TYPES[selectedType]
       if (apk?.size && (!apk.name.toLowerCase().endsWith('.apk') || apk.size > MAX_FILE_BYTES)) throw new Error('APK must be a .apk file up to 50 MB.')
       if (apk?.size && !g('version')) throw new Error('Enter a version number with the APK.')
       const assetMime = asset?.size ? fileMime(asset) : ''
-      if (asset?.size && (selectedType === 'app' || !FILE_TYPES[selectedType].mimeTypes.includes(assetMime) || asset.size > MAX_FILE_BYTES)) throw new Error(`Choose a supported ${CONTENT_TYPE_LABELS[selectedType].toLowerCase()} file up to 50 MB.`)
+      if (asset?.size && !supportedFiles) throw new Error('Choose an APK file for Android apps.')
+      if (asset?.size && supportedFiles && !isSupportedFile(supportedFiles, asset, assetMime)) throw new Error(`That file format is not supported for ${CONTENT_TYPE_LABELS[selectedType].toLowerCase()}. Supported formats: ${supportedFiles.accept.replace(/,/g, ', ')}.`)
+      if (asset?.size && asset.size > MAX_FILE_BYTES) throw new Error('Files must be 50 MB or smaller. This is the maximum size allowed by your storage plan.')
       for (const im of [icon, ...shots]) if (im.size && (!/^image\/(png|jpeg|webp)$/.test(im.type) || im.size > 5 * 1048576)) throw new Error('Images must be PNG/JPG/WebP up to 5 MB.')
       const t = Date.now(); const slug = edit?.slug ?? (slugify(g('name')) || `item-${t}`)
       const row: Record<string, unknown> = { name: g('name'), slug, category: g('category'), short_desc: g('short_desc'), description: g('description'),
@@ -277,39 +285,55 @@ function Admin() {
   if (!ok) return <div className="wrap msg err">This account is not an administrator. <button className="btn alt" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
 
   const used = items.reduce((s, a) => s + a.versions.reduce((t, v) => t + v.size_bytes, 0) + (a.file_size_bytes ?? 0), 0)
+  const publishedCount = items.filter(a => a.published).length
+  const downloadCount = items.reduce((total, item) => total + item.downloads, 0)
   return (
-    <div className="wrap" style={{ paddingTop: 24 }}>
-      <div className="row"><h1>Dashboard</h1><button className="btn alt" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
-      <p>File storage used: {fmt(used)} of {fmt(GB_LIMIT)}</p><div className="bar"><i style={{ width: `${Math.min(100, used / GB_LIMIT * 100)}%` }} /></div>
+    <div className="wrap dashboard">
+      <section className="dashboard-hero">
+        <div><span className="eyebrow">CREATOR STUDIO</span><h1>Your dashboard</h1><p>Manage your catalog, uploads, and published content in one place.</p></div>
+        <div className="dashboard-actions"><button className="btn" type="button" onClick={() => document.getElementById('catalog-editor')?.scrollIntoView({ behavior: 'smooth' })}>＋ Add new item</button><button className="btn alt" onClick={() => supabase.auth.signOut()}>Sign out</button></div>
+      </section>
+      <section className="dashboard-stats" aria-label="Catalog summary">
+        <article className="stat-card"><span className="stat-label">Total items</span><strong>{items.length}</strong><span className="stat-note">In your catalog</span></article>
+        <article className="stat-card"><span className="stat-label">Published</span><strong>{publishedCount}</strong><span className="stat-note">Visible to visitors</span></article>
+        <article className="stat-card"><span className="stat-label">Total downloads</span><strong>{downloadCount.toLocaleString()}</strong><span className="stat-note">Across all items</span></article>
+      </section>
+      <section className="storage-card" aria-label="Storage usage">
+        <div className="storage-copy"><div><strong>File storage</strong><p className="muted">{fmt(used)} used of {fmt(GB_LIMIT)}</p></div><span>{Math.min(100, Math.round(used / GB_LIMIT * 100))}%</span></div>
+        <div className="bar" role="progressbar" aria-label="File storage used" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, Math.round(used / GB_LIMIT * 100))}><i style={{ width: `${Math.min(100, used / GB_LIMIT * 100)}%` }} /></div>
+      </section>
       {msg && <p className={'msg' + (bad ? ' err' : '')} role="status">{msg}</p>}
-      <h2>Your catalog</h2>
-      {!items.length && <p className="muted">No items yet.</p>}
-      {items.map(a => (
-        <div className="row" key={a.id}>
-          <div><strong>{a.name}</strong> <span className="muted">{CONTENT_TYPE_LABELS[a.content_type]} · {a.downloads} downloads · {a.published ? 'Published' : 'Draft'}</span></div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <button className="btn alt" onClick={() => { setEdit(a); window.scrollTo(0, document.body.scrollHeight) }}>Edit / new version</button>
-            <button className="btn alt" onClick={() => patch(a.id, { published: !a.published })}>{a.published ? 'Unpublish' : 'Publish'}</button>
-            <button className="btn alt" onClick={() => patch(a.id, { featured: !a.featured })}>{a.featured ? 'Unfeature' : 'Feature'}</button>
-            <button className="btn red" onClick={() => remove(a)}>Delete</button></div></div>))}
-      <h2>{edit ? `Edit ${edit.name}` : 'Add to your catalog'}</h2>
-      <form className="f" onSubmit={save} key={edit?.id ?? 'new'}>
-        <label>Title<input name="name" placeholder="Item name" required defaultValue={edit?.name} /></label>
-        <label>Content type<select name="content_type" value={contentType} onChange={e => setContentType(e.target.value as ContentType)}>{CONTENT_TYPES.map(t => <option key={t} value={t}>{CONTENT_TYPE_LABELS[t]}</option>)}</select></label>
-        <label>Category<select name="category" defaultValue={edit?.category ?? 'Other'}>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select></label>
-        <label>Short description<input name="short_desc" placeholder="What is this item?" required defaultValue={edit?.short_desc} /></label>
-        <textarea name="description" rows={4} placeholder="Full description" defaultValue={edit?.description} />
-        {contentType === 'app' && <>
-          <label>Features (one per line)<textarea name="features" rows={3} placeholder="Features" defaultValue={edit?.features.join('\n')} /></label>
-          <label>Minimum Android version<input name="min_android" placeholder="e.g. 5.0" defaultValue={edit?.min_android ?? '5.0'} /></label>
-        </>}
-        <label>Icon (PNG/JPG/WebP)<input name="icon" type="file" accept="image/png,image/jpeg,image/webp" /></label>
-        <label>Screenshots (replaces existing)<input name="shots" type="file" accept="image/png,image/jpeg,image/webp" multiple /></label>
-        {contentType === 'app'
-          ? <><label>APK file (optional for text-only edits)<input name="apk" type="file" accept=".apk" /></label><label>App version<input name="version" placeholder="e.g. 1.0.0 (required with an APK)" /></label><label>Release notes<textarea name="notes" rows={2} placeholder="What changed in this version?" /></label></>
-          : <label>Upload file (optional for text-only edits)<input name="asset" type="file" accept={FILE_TYPES[contentType].accept} /><span className="field-help">Maximum 50 MB. Supported formats: {FILE_TYPES[contentType].accept.replace(/,/g, ', ')}.</span></label>}
-        <div><button className="btn" disabled={busy}>{busy ? busyLabel : 'Save'}</button> {edit && <button type="button" className="btn alt" onClick={() => setEdit(null)}>Cancel</button>}</div>
-      </form>
+      <section className="dashboard-section editor-section" id="catalog-editor">
+        <div className="section-heading"><div><span className="eyebrow">{edit ? 'UPDATE CONTENT' : 'NEW LISTING'}</span><h2>{edit ? `Edit ${edit.name}` : 'Add to your catalog'}</h2><p className="muted">Share a new app, song, ebook, or other digital file.</p></div></div>
+        <form className="f" onSubmit={save} key={edit?.id ?? 'new'}>
+          <label>Title<input name="name" placeholder="Item name" required defaultValue={edit?.name} /></label>
+          <label>Content type<select name="content_type" value={contentType} onChange={e => setContentType(e.target.value as ContentType)}>{CONTENT_TYPES.map(t => <option key={t} value={t}>{CONTENT_TYPE_LABELS[t]}</option>)}</select></label>
+          <label>Category<select name="category" defaultValue={edit?.category ?? 'Other'}>{CATEGORIES.map(c => <option key={c}>{c}</option>)}</select></label>
+          <label>Short description<input name="short_desc" placeholder="What is this item?" required defaultValue={edit?.short_desc} /></label>
+          <textarea name="description" rows={4} placeholder="Full description" defaultValue={edit?.description} />
+          {contentType === 'app' && <>
+            <label>Features (one per line)<textarea name="features" rows={3} placeholder="Features" defaultValue={edit?.features.join('\n')} /></label>
+            <label>Minimum Android version<input name="min_android" placeholder="e.g. 5.0" defaultValue={edit?.min_android ?? '5.0'} /></label>
+          </>}
+          <label>Icon (PNG/JPG/WebP)<input name="icon" type="file" accept="image/png,image/jpeg,image/webp" /></label>
+          <label>Screenshots (replaces existing)<input name="shots" type="file" accept="image/png,image/jpeg,image/webp" multiple /></label>
+          {contentType === 'app'
+            ? <><label>APK file (optional for text-only edits)<input name="apk" type="file" accept=".apk" /></label><label>App version<input name="version" placeholder="e.g. 1.0.0 (required with an APK)" /></label><label>Release notes<textarea name="notes" rows={2} placeholder="What changed in this version?" /></label></>
+            : <label className="upload-field">Upload {CONTENT_TYPE_LABELS[contentType].toLowerCase()} file<input name="asset" type="file" accept={FILE_TYPES[contentType].accept} /><span className="field-help">Optional when editing details only. Maximum 50 MB. Supported formats: {FILE_TYPES[contentType].accept.replace(/,/g, ', ')}.</span></label>}
+          <div className="form-actions"><button className="btn" disabled={busy}>{busy ? busyLabel : edit ? 'Save changes' : 'Add to catalog'}</button> {edit && <button type="button" className="btn alt" onClick={() => setEdit(null)}>Cancel</button>}</div>
+        </form>
+      </section>
+      <section className="dashboard-section">
+        <div className="section-heading"><div><span className="eyebrow">YOUR CONTENT</span><h2>Your catalog</h2></div><span className="catalog-count">{items.length} {items.length === 1 ? 'item' : 'items'}</span></div>
+        {!items.length ? <div className="empty-catalog"><strong>Your catalog is ready for its first item</strong><p className="muted">Upload music, apps, ebooks, and more to start sharing with your audience.</p><button className="btn" type="button" onClick={() => document.getElementById('catalog-editor')?.scrollIntoView({ behavior: 'smooth' })}>Create your first item</button></div>
+          : <div className="catalog-list">{items.map(a => (
+            <article className="catalog-item" key={a.id}>
+              {a.icon_url ? <img className="catalog-thumb" src={a.icon_url} alt="" /> : <div className="catalog-thumb catalog-placeholder" aria-hidden="true">{CONTENT_TYPE_LABELS[a.content_type].slice(0, 1)}</div>}
+              <div className="catalog-details"><div className="catalog-title"><strong>{a.name}</strong><span className={`status-pill${a.published ? ' is-published' : ''}`}>{a.published ? 'Published' : 'Draft'}</span></div><span className="muted">{CONTENT_TYPE_LABELS[a.content_type]} · {a.category} · {a.downloads.toLocaleString()} downloads</span><span className="muted">{a.file_name || (a.versions.length ? `${a.versions.length} app version${a.versions.length === 1 ? '' : 's'}` : 'No file uploaded')}</span></div>
+              <div className="catalog-actions"><button className="btn alt" onClick={() => { setEdit(a); document.getElementById('catalog-editor')?.scrollIntoView({ behavior: 'smooth' }) }}>Edit</button><button className="btn alt" onClick={() => patch(a.id, { published: !a.published })}>{a.published ? 'Unpublish' : 'Publish'}</button><button className="btn alt" onClick={() => patch(a.id, { featured: !a.featured })}>{a.featured ? 'Unfeature' : 'Feature'}</button><button className="btn red" onClick={() => remove(a)}>Delete</button></div>
+            </article>
+          ))}</div>}
+      </section>
     </div>)
 }
 
