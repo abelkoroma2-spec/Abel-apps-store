@@ -26,6 +26,40 @@ const isSupportedFile = (supported: { accept: string; mimeTypes: string[] }, fil
 }
 const ADSENSE_CLIENT = String(import.meta.env.VITE_ADSENSE_CLIENT ?? '').trim()
 const ADSENSE_SLOT = String(import.meta.env.VITE_ADSENSE_SLOT ?? '').trim()
+const SITE_NAME = 'Abel Digital Store'
+const SITE_DESCRIPTION = 'Discover and download apps, music, ebooks, and digital creations from Abel Digital Store.'
+const SITE_URL = 'https://abel-apps-store.vercel.app'
+
+function updatePageMetadata({ title, description, canonical, image = `${SITE_URL}/logo.svg`, robots = 'index, follow' }: {
+  title: string; description: string; canonical: string; image?: string; robots?: string
+}) {
+  document.title = title
+  const setMeta = (selector: string, attribute: 'name' | 'property', key: string, content: string) => {
+    let element = document.head.querySelector<HTMLMetaElement>(selector)
+    if (!element) {
+      element = document.createElement('meta')
+      element.setAttribute(attribute, key)
+      document.head.appendChild(element)
+    }
+    element.content = content
+  }
+  setMeta('meta[name="description"]', 'name', 'description', description)
+  setMeta('meta[name="robots"]', 'name', 'robots', robots)
+  setMeta('meta[property="og:title"]', 'property', 'og:title', title)
+  setMeta('meta[property="og:description"]', 'property', 'og:description', description)
+  setMeta('meta[property="og:url"]', 'property', 'og:url', canonical)
+  setMeta('meta[property="og:image"]', 'property', 'og:image', image)
+  setMeta('meta[name="twitter:title"]', 'name', 'twitter:title', title)
+  setMeta('meta[name="twitter:description"]', 'name', 'twitter:description', description)
+  setMeta('meta[name="twitter:image"]', 'name', 'twitter:image', image)
+  let canonicalLink = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]')
+  if (!canonicalLink) {
+    canonicalLink = document.createElement('link')
+    canonicalLink.rel = 'canonical'
+    document.head.appendChild(canonicalLink)
+  }
+  canonicalLink.href = canonical
+}
 
 declare global {
   interface Window {
@@ -117,6 +151,13 @@ function Home() {
   const { apps, err } = useApps()
   const [q, setQ] = useState(''); const [cat, setCat] = useState('All')
   const [type, setType] = useState<ContentType | 'all'>('all')
+  useEffect(() => {
+    updatePageMetadata({
+      title: 'Abel Digital Store | Apps, Music, Ebooks & Downloads',
+      description: SITE_DESCRIPTION,
+      canonical: `${SITE_URL}/`,
+    })
+  }, [])
   if (err) return <div className="wrap msg err" role="alert">Could not load apps: {err}</div>
   if (!apps) return <div className="wrap msg">Loading apps…</div>
   const filtered = apps.filter(a => (cat === 'All' || a.category === cat) && (type === 'all' || a.content_type === type) && (a.name + a.short_desc + a.description + a.category).toLowerCase().includes(q.toLowerCase()))
@@ -150,7 +191,16 @@ function AppPage() {
   const { slug } = useParams()
   const { apps, err } = useApps()
   const a = apps?.find(x => x.slug === slug)
-  useEffect(() => { if (a) document.title = `${a.name} – Abel Apps Store` }, [a])
+  useEffect(() => {
+    if (!a) return
+    const description = (a.short_desc || a.description || `${CONTENT_TYPE_LABELS[a.content_type]} from ${SITE_NAME}.`).replace(/\s+/g, ' ').slice(0, 300)
+    updatePageMetadata({
+      title: `${a.name} | ${CONTENT_TYPE_LABELS[a.content_type]} – ${SITE_NAME}`,
+      description,
+      canonical: `${SITE_URL}/app/${encodeURIComponent(a.slug)}`,
+      image: a.icon_url || `${SITE_URL}/logo.svg`,
+    })
+  }, [a])
   if (err) return <div className="wrap msg err">{err}</div>
   if (!apps) return <div className="wrap msg">Loading…</div>
   if (!a) return <NotFound />
@@ -175,7 +225,12 @@ function AppPage() {
   )
 }
 
-function NotFound() { return <div className="wrap hero"><h1>404</h1><p className="muted">That page doesn’t exist.</p><Link className="btn" to="/">Back to store</Link></div> }
+function NotFound() {
+  useEffect(() => {
+    updatePageMetadata({ title: `Page not found | ${SITE_NAME}`, description: 'This page could not be found.', canonical: window.location.href, robots: 'noindex, follow' })
+  }, [])
+  return <div className="wrap hero"><h1>404</h1><p className="muted">That page doesn’t exist.</p><Link className="btn" to="/">Back to store</Link></div>
+}
 
 const GB_LIMIT = Number(import.meta.env.VITE_STORAGE_LIMIT_MB ?? 1024) * 1048576
 const pathOf = (url: string) => url.split('/images/')[1]
@@ -188,6 +243,9 @@ function Admin() {
   const [busyLabel, setBusyLabel] = useState('')
   const [edit, setEdit] = useState<Item | null>(null)
   const [contentType, setContentType] = useState<ContentType>('app')
+  useEffect(() => {
+    updatePageMetadata({ title: `Creator dashboard | ${SITE_NAME}`, description: 'Creator dashboard sign-in and catalog management.', canonical: `${SITE_URL}/admin`, robots: 'noindex, nofollow' })
+  }, [])
   const say = (m: string, e = false) => { setMsg(m); setBad(e) }
   const load = () => fetchApps().then(setItems).catch(e => say(e.message, true))
 
