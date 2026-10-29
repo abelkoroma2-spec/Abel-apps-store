@@ -32,20 +32,27 @@ For Android apps, provide a version (e.g. `1.0.0`) with each APK. Previous versi
 Push the folder to a GitHub repo (`.env` is git-ignored). At vercel.com: Add New > Project > import the repo. Add the three variables from `.env.example` under Environment Variables, then Deploy. Vercel gives HTTPS automatically.
 In Supabase, Authentication > URL Configuration: set Site URL to your Vercel address.
 
-## 6. AdSense
+## 6. Help Google find the site
+The production build generates `sitemap.xml` with the homepage and every currently published catalog item. `robots.txt` points crawlers to that sitemap, and public item pages include item-specific page titles, descriptions, canonical URLs, and sharing metadata.
+1. After deployment, open Google Search Console and add a URL-prefix property for `https://abel-apps-store.vercel.app/` (or your custom domain).
+2. Verify ownership using one of Google's offered methods. If using the HTML tag method, add Google's verification meta tag to `index.html` and redeploy.
+3. In Search Console, submit `https://abel-apps-store.vercel.app/sitemap.xml` (replace the hostname if using a custom domain).
+Google decides when and whether pages are indexed; submitting a sitemap helps discovery but does not guarantee ranking or immediate appearance in search results.
+
+## 7. AdSense
 Apply for AdSense and complete Google's site review first. After approval, set `VITE_ADSENSE_CLIENT` to your publisher ID (`ca-pub-...`) and `VITE_ADSENSE_SLOT` to the responsive ad-unit ID in Vercel Environment Variables, then redeploy. The ad slot stays hidden until both values are present. Complete any AdSense site-verification and `ads.txt` steps shown in your AdSense account.
 
-## 7. Custom domain
+## 8. Custom domain
 Vercel project > Settings > Domains > add your domain and set the DNS records Vercel shows at your registrar. HTTPS is issued automatically.
 
-## 8. Updating catalog items
+## 9. Updating catalog items
 Admin > Edit / new version > replace the item file or update its details > Save. APK versions stay in the app changelog. Site code changes: push to GitHub and Vercel redeploys.
 
-## 9. Backups
+## 10. Backups
 - Database: Supabase > Database > Backups (daily backups are on paid plans; on free, run Table Editor > export CSV for `apps` and `versions` regularly, or `pg_dump` with the connection string).
 - Files: keep the original APKs and images on your laptop; Supabase Storage has no one-click export on the free plan.
 
-## Costs and limits (verify current numbers on supabase.com/pricing and vercel.com/pricing)
+## 11. Costs and limits (verify current numbers on supabase.com/pricing and vercel.com/pricing)
 - Supabase free: roughly 500 MB database, 1 GB file storage, 50 MB max file size, limited monthly bandwidth, and projects pause after about a week of inactivity. Pro is about $25/month with much more storage and bandwidth and larger files.
 - Vercel Hobby: free for personal, non-commercial use; Pro is about $20/month.
 - Domain: about $10–15/year.
