@@ -39,7 +39,7 @@ values (
   52428800,
   array[
     'application/vnd.android.package-archive','application/octet-stream',
-    'audio/mpeg','audio/mp4','audio/wav','audio/x-wav','audio/ogg','audio/aac','audio/flac','audio/webm',
+    'audio/mpeg','audio/mp4','audio/x-m4a','audio/wav','audio/x-wav','audio/ogg','audio/aac','audio/flac','audio/webm',
     'application/pdf','application/epub+zip','text/plain','text/csv',
     'application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

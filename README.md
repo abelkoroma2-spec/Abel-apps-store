@@ -10,6 +10,7 @@ Install Node.js 20+ from nodejs.org, then in this folder:
 1. Make a free account at supabase.com, create a project (pick the region closest to you; save the DB password).
 2. Open SQL Editor, paste all of `supabase/schema.sql`, click Run. This creates tables, security rules, the download counter, the `apks`, `images`, and `downloads` buckets, and a draft DLBC Bible Puzzle listing.
    - If you already set up the project using the old schema, run `supabase/migrations/20261028000000_add_digital_downloads.sql` in SQL Editor instead. Existing apps and APK versions are preserved.
+   - If M4A uploads fail with `audio/x-m4a is not supported`, run `supabase/migrations/20261029000000_allow_m4a_audio_mime.sql` in SQL Editor. This adds that MIME type to the existing `downloads` bucket without removing its current allowed formats.
 3. Project Settings > API: copy the Project URL and the `anon` public key into `.env`. Never use or share the `service_role` key.
 
 ## 3. Create the admin account securely
